@@ -1,0 +1,37 @@
+# OS artifacts
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# VS / VS Code user state
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+
+# .NET / WinUI build output
+**/bin/
+**/obj/
+TestResults/
+
+# C/C++ intermediate outputs (common)
+*.idb
+*.ilk
+*.pdb
+*.ipch
+*.tlog
+
+# Local logs and temp files
+*.log
+*.tmp
+*.cache
+
+# Project-specific transient artifacts
+WinUI/SevenZipManager/build_temp/
+WinUI/SevenZipManager/SevenZipManager_temp/
+WinUI/SevenZipManager/build.log
+WinUI/SevenZipManager/xaml_err.txt
+WinUI/SevenZipManager/xaml_out.txt
