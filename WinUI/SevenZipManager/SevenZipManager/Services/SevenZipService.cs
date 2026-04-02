@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace SevenZipManager
@@ -37,6 +39,13 @@ namespace SevenZipManager
                 Directory.CreateDirectory(dir);
             }
 
+            var normalizedFormat = string.IsNullOrWhiteSpace(options.Format) ? "7z" : options.Format.Trim().ToLowerInvariant();
+            if (options.CreateSfx && normalizedFormat == "7z")
+            {
+                BuildWinUiSfxPackage(outputPath, inputFiles, options);
+                return;
+            }
+
             var args = BuildCompressArgs(outputPath, inputFiles, options);
             Run7zCommand(args);
         }
@@ -71,6 +80,11 @@ namespace SevenZipManager
             if (options.PathMode == "full")
             {
                 args += " -spf";
+            }
+
+            if (options.CompressSharedFiles)
+            {
+                args += " -ssw";
             }
 
             if (options.ThreadCount > 0)
@@ -141,12 +155,150 @@ namespace SevenZipManager
                 args += " -sdel";
             }
 
+            if (!string.IsNullOrWhiteSpace(options.AdditionalParameters))
+            {
+                args += " " + options.AdditionalParameters;
+            }
+
             args += $" \"{outputPath}\"";
             foreach (var file in inputFiles)
             {
                 args += $" \"{file}\"";
             }
             return args;
+        }
+
+        private void BuildWinUiSfxPackage(string outputExePath, List<string> inputFiles, CompressionOptions options)
+        {
+            var archivePath = Path.ChangeExtension(outputExePath, ".7z");
+            var archiveOptions = new CompressionOptions
+            {
+                UpdateMode = options.UpdateMode,
+                PathMode = options.PathMode,
+                Format = "7z",
+                CompressionLevel = options.CompressionLevel,
+                Method = options.Method,
+                DictionarySize = options.DictionarySize,
+                WordSize = options.WordSize,
+                ThreadCount = options.ThreadCount,
+                SolidArchive = options.SolidArchive,
+                SolidBlockSize = options.SolidBlockSize,
+                EncryptionMethod = options.EncryptionMethod,
+                EncryptHeaders = options.EncryptHeaders,
+                Password = options.Password,
+                VolumeSize = options.VolumeSize,
+                DeleteSourceFiles = options.DeleteSourceFiles,
+                CreateSfx = false,
+                CompressSharedFiles = options.CompressSharedFiles,
+                AdditionalParameters = options.AdditionalParameters
+            };
+
+            var compressArgs = BuildCompressArgs(archivePath, inputFiles, archiveOptions);
+            Run7zCommand(compressArgs);
+
+            var appDir = AppContext.BaseDirectory;
+            var appExePath = ResolveAppExecutablePath(appDir);
+            if (string.IsNullOrWhiteSpace(appExePath) || !File.Exists(appExePath))
+            {
+                throw new Exception("未找到 WinUI3 启动程序，无法创建自解压包。");
+            }
+
+            var outputDir = Path.GetDirectoryName(outputExePath);
+            if (string.IsNullOrWhiteSpace(outputDir))
+            {
+                throw new Exception("输出路径无效。");
+            }
+
+            Directory.CreateDirectory(outputDir);
+
+            CopyDirectoryRecursive(appDir, outputDir);
+
+            File.Copy(appExePath, outputExePath, true);
+
+            EnsureRenamedHostSupportFiles(appDir, appExePath, outputExePath);
+
+            var localArchiveName = Path.GetFileName(archivePath);
+            var localArchivePath = Path.Combine(outputDir, localArchiveName);
+            if (!archivePath.Equals(localArchivePath, StringComparison.OrdinalIgnoreCase))
+            {
+                File.Copy(archivePath, localArchivePath, true);
+            }
+
+            var sfxSidecarPath = Path.ChangeExtension(outputExePath, ".sfxpath");
+            File.WriteAllText(sfxSidecarPath, localArchiveName);
+        }
+
+        private static void CopyDirectoryRecursive(string sourceDir, string targetDir)
+        {
+            foreach (var directory in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                var relative = Path.GetRelativePath(sourceDir, directory);
+                var destinationSubdir = Path.Combine(targetDir, relative);
+                Directory.CreateDirectory(destinationSubdir);
+            }
+
+            foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                var relative = Path.GetRelativePath(sourceDir, file);
+                var destinationPath = Path.Combine(targetDir, relative);
+                var destinationFolder = Path.GetDirectoryName(destinationPath);
+                if (!string.IsNullOrWhiteSpace(destinationFolder))
+                {
+                    Directory.CreateDirectory(destinationFolder);
+                }
+
+                File.Copy(file, destinationPath, true);
+            }
+        }
+
+        private static void EnsureRenamedHostSupportFiles(string appDir, string appExePath, string outputExePath)
+        {
+            var sourceBase = Path.GetFileNameWithoutExtension(appExePath);
+            var targetBase = Path.GetFileNameWithoutExtension(outputExePath);
+            if (string.Equals(sourceBase, targetBase, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var outputDir = Path.GetDirectoryName(outputExePath) ?? appDir;
+
+            var sourceRuntimeConfig = Path.Combine(appDir, sourceBase + ".runtimeconfig.json");
+            var sourceDeps = Path.Combine(appDir, sourceBase + ".deps.json");
+
+            if (File.Exists(sourceRuntimeConfig))
+            {
+                var targetRuntimeConfig = Path.Combine(outputDir, targetBase + ".runtimeconfig.json");
+                File.Copy(sourceRuntimeConfig, targetRuntimeConfig, true);
+            }
+
+            if (File.Exists(sourceDeps))
+            {
+                var targetDeps = Path.Combine(outputDir, targetBase + ".deps.json");
+                File.Copy(sourceDeps, targetDeps, true);
+            }
+        }
+
+        private static string? ResolveAppExecutablePath(string appDir)
+        {
+            var exeCandidates = Directory
+                .GetFiles(appDir, "*.exe", SearchOption.TopDirectoryOnly)
+                .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var preferred = exeCandidates.FirstOrDefault(path =>
+                Path.GetFileName(path).Equals("SevenZipManager.exe", StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(preferred))
+            {
+                return preferred;
+            }
+
+            var processPath = Environment.ProcessPath;
+            if (!string.IsNullOrWhiteSpace(processPath) && File.Exists(processPath))
+            {
+                return processPath;
+            }
+
+            return exeCandidates.FirstOrDefault();
         }
 
         private static string BuildExtractArgs(string archivePath, string outputPath, string password)
@@ -181,7 +333,7 @@ namespace SevenZipManager
                 CreateNoWindow = true
             };
 
-            using var process = System.Diagnostics.Process.Start(psi);
+            using var process = Process.Start(psi);
             process?.WaitForExit();
 
             if (process?.ExitCode != 0)
@@ -204,7 +356,7 @@ namespace SevenZipManager
                 CreateNoWindow = true
             };
 
-            using var process = System.Diagnostics.Process.Start(psi);
+            using var process = Process.Start(psi);
             if (process != null)
             {
                 while (!process.StandardOutput.EndOfStream)

@@ -17,5 +17,8 @@ namespace SevenZipManager
         public string Password { get; set; } = "";
         public string? VolumeSize { get; set; }
         public bool DeleteSourceFiles { get; set; }
+        public bool CreateSfx { get; set; }
+        public bool CompressSharedFiles { get; set; }
+        public string? AdditionalParameters { get; set; }
     }
 }
