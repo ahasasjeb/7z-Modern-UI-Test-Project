@@ -59,18 +59,26 @@ namespace SevenZipManager
                 return;
             }
 
-            var dialog = new CompressDialog(selectedItems, ViewModel.CurrentPath)
+            try
             {
-                XamlRoot = Content.XamlRoot
-            };
+                var dialog = new CompressDialog(selectedItems, ViewModel.CurrentPath)
+                {
+                    XamlRoot = Content.XamlRoot
+                };
 
-            var result = await dialog.ShowAsync();
-            if (result == ContentDialogResult.Primary)
+                var result = await dialog.ShowAsync();
+                if (result == ContentDialogResult.Primary)
+                {
+                    var inputPaths = selectedItems
+                        .Select(i => i.FullPath ?? Path.Combine(ViewModel.CurrentPath, i.Name))
+                        .ToList();
+                    await ViewModel.CompressAsync(dialog.OutputPath, inputPaths, dialog.Options);
+                }
+            }
+            catch (Exception ex)
             {
-                var inputPaths = selectedItems
-                    .Select(i => i.FullPath ?? Path.Combine(ViewModel.CurrentPath, i.Name))
-                    .ToList();
-                await ViewModel.CompressAsync(dialog.OutputPath, inputPaths, dialog.Format, dialog.Password);
+                ViewModel.StatusText = $"打开压缩设置失败: {ex.Message}";
+                await ShowInfoDialogAsync("错误", $"压缩对话框加载失败:\n{ex.Message}");
             }
         }
 

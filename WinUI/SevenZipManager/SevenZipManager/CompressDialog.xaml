@@ -7,44 +7,124 @@
     PrimaryButtonText="确定"
     CloseButtonText="取消"
     DefaultButton="Primary"
-    MinWidth="400">
+    MinWidth="760">
 
-    <StackPanel Spacing="12">
-        <TextBlock Text="选择压缩格式:" FontWeight="SemiBold"/>
-        <ComboBox x:Name="FormatComboBox" SelectedIndex="0">
-            <ComboBoxItem Content="7z"/>
-            <ComboBoxItem Content="ZIP"/>
-            <ComboBoxItem Content="TAR"/>
-            <ComboBoxItem Content="GZIP"/>
-            <ComboBoxItem Content="BZIP2"/>
-            <ComboBoxItem Content="XZ"/>
-        </ComboBox>
-
-        <TextBlock Text="输出文件名:" FontWeight="SemiBold"/>
-        <TextBox x:Name="FileNameBox" PlaceholderText="输入文件名..."/>
-
-        <TextBlock Text="输出路径:" FontWeight="SemiBold"/>
+    <StackPanel Spacing="12" MaxHeight="620">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="OutputPathBox" Grid.Column="0" IsReadOnly="True"/>
+            <TextBox x:Name="ArchivePathBox" Grid.Column="0" PlaceholderText="压缩包完整路径"/>
             <Button Grid.Column="1" Content="浏览..." Margin="8,0,0,0" Click="OnBrowseClick"/>
         </Grid>
 
-        <TextBlock Text="压缩级别:" FontWeight="SemiBold"/>
-        <ComboBox x:Name="LevelComboBox" SelectedIndex="3">
-            <ComboBoxItem Content="最快"/>
-            <ComboBoxItem Content="较快"/>
-            <ComboBoxItem Content="普通"/>
-            <ComboBoxItem Content="最大"/>
-            <ComboBoxItem Content="极限"/>
-        </ComboBox>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-        <TextBlock Text="密码 (可选):" FontWeight="SemiBold"/>
-        <PasswordBox x:Name="PasswordBox" PlaceholderText="输入密码..."/>
+            <StackPanel Grid.Column="0" Spacing="8">
+                <TextBlock Text="压缩格式" FontWeight="SemiBold"/>
+                <ComboBox x:Name="FormatComboBox" SelectedIndex="0" SelectionChanged="OnFormatChanged">
+                    <ComboBoxItem Content="7z"/>
+                    <ComboBoxItem Content="ZIP"/>
+                    <ComboBoxItem Content="TAR"/>
+                    <ComboBoxItem Content="GZIP"/>
+                    <ComboBoxItem Content="BZIP2"/>
+                    <ComboBoxItem Content="XZ"/>
+                </ComboBox>
 
-        <CheckBox x:Name="EncryptNamesCheckBox" Content="加密文件名 (仅7z格式)"/>
+                <TextBlock Text="更新方式" FontWeight="SemiBold"/>
+                <ComboBox x:Name="UpdateModeComboBox" SelectedIndex="0">
+                    <ComboBoxItem Content="添加并替换文件" Tag="add"/>
+                    <ComboBoxItem Content="更新并添加文件" Tag="update"/>
+                    <ComboBoxItem Content="同步归档内容" Tag="sync"/>
+                </ComboBox>
+
+                <TextBlock Text="压缩等级" FontWeight="SemiBold"/>
+                <ComboBox x:Name="LevelComboBox" SelectedIndex="3">
+                    <ComboBoxItem Content="1 - 最快"/>
+                    <ComboBoxItem Content="3 - 较快"/>
+                    <ComboBoxItem Content="5 - 普通"/>
+                    <ComboBoxItem Content="7 - 最大"/>
+                    <ComboBoxItem Content="9 - 极限"/>
+                </ComboBox>
+
+                <TextBlock Text="压缩方法" FontWeight="SemiBold"/>
+                <ComboBox x:Name="MethodComboBox" SelectedIndex="0">
+                    <ComboBoxItem Content="默认"/>
+                    <ComboBoxItem Content="LZMA2"/>
+                    <ComboBoxItem Content="LZMA"/>
+                    <ComboBoxItem Content="PPMd"/>
+                    <ComboBoxItem Content="Deflate"/>
+                    <ComboBoxItem Content="Copy"/>
+                </ComboBox>
+
+                <TextBlock Text="字典大小" FontWeight="SemiBold"/>
+                <ComboBox x:Name="DictionaryComboBox" SelectedIndex="3">
+                    <ComboBoxItem Content="默认"/>
+                    <ComboBoxItem Content="1m"/>
+                    <ComboBoxItem Content="2m"/>
+                    <ComboBoxItem Content="4m"/>
+                    <ComboBoxItem Content="8m"/>
+                    <ComboBoxItem Content="16m"/>
+                    <ComboBoxItem Content="32m"/>
+                    <ComboBoxItem Content="64m"/>
+                </ComboBox>
+
+                <TextBlock Text="单词大小" FontWeight="SemiBold"/>
+                <ComboBox x:Name="WordSizeComboBox" SelectedIndex="2">
+                    <ComboBoxItem Content="默认"/>
+                    <ComboBoxItem Content="32"/>
+                    <ComboBoxItem Content="64"/>
+                    <ComboBoxItem Content="128"/>
+                    <ComboBoxItem Content="192"/>
+                    <ComboBoxItem Content="273"/>
+                </ComboBox>
+
+                <TextBlock Text="固实数据块" FontWeight="SemiBold"/>
+                <ComboBox x:Name="SolidBlockComboBox" SelectedIndex="0">
+                    <ComboBoxItem Content="自动"/>
+                    <ComboBoxItem Content="关闭"/>
+                    <ComboBoxItem Content="64m"/>
+                    <ComboBoxItem Content="256m"/>
+                    <ComboBoxItem Content="1g"/>
+                </ComboBox>
+
+                <TextBlock Text="CPU 线程数" FontWeight="SemiBold"/>
+                <NumberBox x:Name="ThreadCountBox" Value="0" SmallChange="1" Minimum="0" Maximum="128" SpinButtonPlacementMode="Compact"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Spacing="8">
+                <TextBlock Text="路径模式" FontWeight="SemiBold"/>
+                <ComboBox x:Name="PathModeComboBox" SelectedIndex="0">
+                    <ComboBoxItem Content="相对路径" Tag="relative"/>
+                    <ComboBoxItem Content="完整路径" Tag="full"/>
+                </ComboBox>
+
+                <TextBlock Text="分卷大小 (可选)" FontWeight="SemiBold"/>
+                <TextBox x:Name="VolumeSizeBox" PlaceholderText="例如: 100m, 1g"/>
+
+                <TextBlock Text="密码 (可选)" FontWeight="SemiBold"/>
+                <PasswordBox x:Name="PasswordBox" PlaceholderText="输入密码..."/>
+
+                <TextBlock Text="加密算法" FontWeight="SemiBold"/>
+                <ComboBox x:Name="EncryptionMethodComboBox" SelectedIndex="0">
+                    <ComboBoxItem Content="AES-256" Tag="aes256"/>
+                    <ComboBoxItem Content="ZipCrypto" Tag="zipcrypto"/>
+                </ComboBox>
+
+                <Border BorderBrush="#33000000" BorderThickness="1" Padding="10">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="选项" FontWeight="SemiBold"/>
+                        <CheckBox x:Name="SolidArchiveCheckBox" Content="创建固实压缩包" IsChecked="True"/>
+                        <CheckBox x:Name="EncryptNamesCheckBox" Content="加密文件名 (仅7z)"/>
+                        <CheckBox x:Name="DeleteSourceCheckBox" Content="压缩后删除源文件"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
     </StackPanel>
 </ContentDialog>

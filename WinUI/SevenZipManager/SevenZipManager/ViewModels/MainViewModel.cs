@@ -150,7 +150,7 @@ namespace SevenZipManager.ViewModels
             }
         }
 
-        public async Task CompressAsync(string outputPath, List<string> inputPaths, string format, string password)
+        public async Task CompressAsync(string outputPath, List<string> inputPaths, CompressionOptions options)
         {
             IsBusy = true;
             ProgressPercent = 0;
@@ -158,7 +158,7 @@ namespace SevenZipManager.ViewModels
 
             try
             {
-                await Task.Run(() => _zipService.Compress(outputPath, inputPaths, format, password));
+            await Task.Run(() => _zipService.Compress(outputPath, inputPaths, options));
                 ProgressPercent = 100;
                 StatusText = "压缩完成";
                 await RefreshAsync();
